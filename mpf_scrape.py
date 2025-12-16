@@ -1,4 +1,5 @@
 
+import argparse
 import re
 import sys
 import time
@@ -9,7 +10,15 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-URL = "https://mfp.mpfa.org.hk/eng/mpp_list.jsp"
+# Language-specific URLs
+URLS = {
+    "zh": "https://mfp.mpfa.org.hk/tch/mpp_list.jsp",  # Traditional Chinese
+    "cn": "https://mfp.mpfa.org.hk/sch/mpp_list.jsp",  # Simplified Chinese
+    "en": "https://mfp.mpfa.org.hk/eng/mpp_list.jsp",  # English
+}
+
+# Default URL
+URL = URLS["en"]
 
 def fetch_html(url: str, timeout: int = 30, max_retries: int = 3) -> str:
     """Fetch page HTML with a browser-like User-Agent and basic retries."""
@@ -81,7 +90,7 @@ def extract_update_date(html: str) -> Optional[str]:
 def parse_main_table(html: str) -> pd.DataFrame:
     """
     Parse the fund information table with multi-level headers.
-    The page is server-rendered (JSP), so pandas.read_html should work.
+    Supports English, Traditional Chinese, and Simplified Chinese.
     Returns a DataFrame with cleaned, properly labeled columns and no duplicates.
     """
     from io import StringIO
@@ -117,31 +126,32 @@ def parse_main_table(html: str) -> pd.DataFrame:
             continue
         
         # For basic info columns, keep the one with proper label in level_1
-        if 'Scheme' in level_1:
+        # Multi-language support: en/zh/cn
+        if 'Scheme' in level_1 or level_1 == '計劃' or level_1 == '计划':
             columns_to_keep.append(idx)
             column_names.append('Scheme')
-        elif 'Constituent' in level_1 and 'Fund' in level_1:
+        elif ('Constituent' in level_1 and 'Fund' in level_1) or level_1 == '成分基金':
             columns_to_keep.append(idx)
             column_names.append('Constituent Fund')
-        elif 'MPF Trustee' in level_1 or 'MPFTrustee' in level_1:
+        elif 'MPF Trustee' in level_1 or 'MPFTrustee' in level_1 or level_1 == '受託人' or level_1 == '受托人':
             columns_to_keep.append(idx)
             column_names.append('MPF Trustee')
-        elif 'Fund  Type' in level_1 or 'Fund Type' in level_1:
+        elif 'Fund  Type' in level_1 or 'Fund Type' in level_1 or level_1 == '基金類別' or level_1 == '基金类别':
             columns_to_keep.append(idx)
             column_names.append('Fund Type')
-        elif 'Launch Date' in level_1:
+        elif 'Launch Date' in level_1 or level_1 == '推出日期':
             columns_to_keep.append(idx)
             column_names.append('Launch Date')
-        elif "Fund size (HKD' m)" in level_1:
+        elif "Fund size (HKD' m)" in level_1 or '基金規模' in level_1 or '基金规模' in level_1:
             columns_to_keep.append(idx)
             column_names.append("Fund Size (HKD'm)")
-        elif 'Risk  Class' in level_1 or 'Risk Class' in level_1:
+        elif 'Risk  Class' in level_1 or 'Risk Class' in level_1 or level_1 == '風險級別' or level_1 == '风险级别':
             columns_to_keep.append(idx)
             column_names.append('Risk Class')
-        elif 'Latest FER' in level_1:
+        elif 'Latest FER' in level_1 or '最近期基金' in level_1 or '開支比率' in level_1 or '开支比率' in level_1:
             columns_to_keep.append(idx)
             column_names.append('FER (%)')
-        elif 'Details' in level_1:
+        elif 'Details' in level_1 or level_1 == '詳細內容' or level_1 == '详细内容':
             columns_to_keep.append(idx)
             column_names.append('Details')
         
@@ -149,45 +159,48 @@ def parse_main_table(html: str) -> pd.DataFrame:
         # The key is that Pandas adds .1, .2, .3 suffixes to duplicate column names
         # Due to HTML colspan, there are true duplicates - we only want the FIRST of each type
         
-        elif '1 Year' in level_2:
+        # 1 Year / 一年期
+        elif '1 Year' in level_2 or '一年期' in level_2:
             if '.1' not in level_2 and '.2' not in level_2 and '.3' not in level_2:
                 # First occurrence - Annualized Return
                 if '1Y_ann' not in seen_return_periods:
                     columns_to_keep.append(idx)
                     column_names.append('Annualized Return (% p.a.) - 1 Year')
                     seen_return_periods['1Y_ann'] = True
-            elif level_2 == '1 Year.1':
+            elif level_2 == '1 Year.1' or level_2 == '一年期.1':
                 # Second occurrence - Cumulative Return
                 if '1Y_cum' not in seen_return_periods:
                     columns_to_keep.append(idx)
                     column_names.append('Cumulative Return (%) - 1 Year')
                     seen_return_periods['1Y_cum'] = True
-            elif level_2 == '1 Year.2':
+            elif level_2 == '1 Year.2' or level_2 == '一年期.2':
                 # Third - Calendar Year 2024
                 if '1Y_cy2024' not in seen_return_periods:
                     columns_to_keep.append(idx)
                     column_names.append('Calendar Year Return (%) - 2024')
                     seen_return_periods['1Y_cy2024'] = True
-            elif level_2 == '1 Year.3':
+            elif level_2 == '1 Year.3' or level_2 == '一年期.3':
                 # Fourth - Calendar Year 2023
                 if '1Y_cy2023' not in seen_return_periods:
                     columns_to_keep.append(idx)
                     column_names.append('Calendar Year Return (%) - 2023')
                     seen_return_periods['1Y_cy2023'] = True
-                
-        elif '5 Year' in level_2:
-            if level_2 == '5 Year' and '5Y_ann' not in seen_return_periods:
+        
+        # 5 Year / 五年期        
+        elif '5 Year' in level_2 or '五年期' in level_2:
+            if (level_2 == '5 Year' or level_2 == '五年期') and '5Y_ann' not in seen_return_periods:
                 # First occurrence - Annualized Return
                 columns_to_keep.append(idx)
                 column_names.append('Annualized Return (% p.a.) - 5 Year')
                 seen_return_periods['5Y_ann'] = True
-            elif level_2 == '5 Year.1' and '5Y_cum' not in seen_return_periods:
+            elif (level_2 == '5 Year.1' or level_2 == '五年期.1') and '5Y_cum' not in seen_return_periods:
                 # Second occurrence - Cumulative Return
                 columns_to_keep.append(idx)
                 column_names.append('Cumulative Return (%) - 5 Year')
                 seen_return_periods['5Y_cum'] = True
-                
-        elif '10 Year' in level_2:
+        
+        # 10 Year / 十年期        
+        elif '10 Year' in level_2 or '十年期' in level_2:
             # All 10 Year columns are duplicates due to colspan, keep only first two
             if '10Y_ann' not in seen_return_periods:
                 columns_to_keep.append(idx)
@@ -198,8 +211,9 @@ def parse_main_table(html: str) -> pd.DataFrame:
                 columns_to_keep.append(idx)
                 column_names.append('Cumulative Return (%) - 10 Year')
                 seen_return_periods['10Y_cum'] = True
-                
-        elif 'Since' in level_2 and 'Launch' in level_2:
+        
+        # Since Launch / 推出至今        
+        elif ('Since' in level_2 and 'Launch' in level_2) or '推出至今' in level_2:
             # All Since Launch columns are duplicates due to colspan, keep only first two
             if 'SL_ann' not in seen_return_periods:
                 columns_to_keep.append(idx)
@@ -222,8 +236,20 @@ def parse_main_table(html: str) -> pd.DataFrame:
     
     return df_clean
 
-def main(save_to_csv: Optional[str] = None, save_to_excel: Optional[str] = None):
-    html = fetch_html(URL)
+def main(save_to_csv: Optional[str] = None, save_to_excel: Optional[str] = None, language: str = "en"):
+    """
+    Main function to scrape MPF fund data.
+    
+    Args:
+        save_to_csv: Path to save CSV output
+        save_to_excel: Path to save Excel output
+        language: Language code ('zh', 'cn', or 'en')
+    """
+    url = URLS.get(language.lower(), URLS["en"])
+    print(f"\n=== Scraping from {language.upper()} version ===")
+    print(f"URL: {url}\n")
+    
+    html = fetch_html(url)
     update_date_raw = extract_update_date(html)
     df = parse_main_table(html)
 
@@ -253,8 +279,29 @@ def main(save_to_csv: Optional[str] = None, save_to_excel: Optional[str] = None)
         print(f"Saved Excel to: {save_to_excel}")
 
 if __name__ == "__main__":
-    # Optional: pass output file names via CLI args
-    # Example: python script.py funds.csv funds.xlsx
-    csv_path = sys.argv[1] if len(sys.argv) > 1 else None
-    xlsx_path = sys.argv[2] if len(sys.argv) > 2 else None
-    main(save_to_csv=csv_path, save_to_excel=xlsx_path)
+    parser = argparse.ArgumentParser(
+        description="Scrape MPF fund information from MPFA website",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python mpf_scrape.py --lang en                    # Scrape English version (default)
+  python mpf_scrape.py --lang zh                    # Scrape Traditional Chinese version
+  python mpf_scrape.py --lang cn                    # Scrape Simplified Chinese version
+  python mpf_scrape.py --lang en funds.csv          # Save to CSV
+  python mpf_scrape.py --lang zh funds.csv funds.xlsx  # Save to both CSV and Excel
+        """
+    )
+    
+    parser.add_argument(
+        "--lang",
+        "-l",
+        choices=["zh", "cn", "en"],
+        default="en",
+        help="Language to scrape (zh=Traditional Chinese, cn=Simplified Chinese, en=English)"
+    )
+    parser.add_argument("csv", nargs="?", help="Output CSV file path (optional)")
+    parser.add_argument("xlsx", nargs="?", help="Output Excel file path (optional)")
+    
+    args = parser.parse_args()
+    
+    main(save_to_csv=args.csv, save_to_excel=args.xlsx, language=args.lang)

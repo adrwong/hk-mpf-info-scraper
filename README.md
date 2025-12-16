@@ -4,7 +4,8 @@ A Python scraper for extracting Mandatory Provident Fund (MPF) data from the MPF
 
 ## Features
 
-- Scrapes comprehensive MPF fund information from https://mfp.mpfa.org.hk/eng/mpp_list.jsp
+- **Multi-language support**: Scrape data in English, Traditional Chinese, or Simplified Chinese
+- Scrapes comprehensive MPF fund information from the MPFA website
 - Extracts and properly labels all fund data including:
   - Basic fund information (Scheme, Fund Name, Trustee, Type, Launch Date, Fund Size, Risk Class)
   - Fee information (Fund Expense Ratio - FER)
@@ -40,20 +41,43 @@ uv pip install pandas requests beautifulsoup4 lxml openpyxl
 ### Basic usage (prints to console):
 
 ```bash
+# English (default)
 python mpf_scrape.py
+
+# Traditional Chinese
+python mpf_scrape.py --lang zh
+
+# Simplified Chinese
+python mpf_scrape.py --lang cn
 ```
 
 ### Save to CSV:
 
 ```bash
-python mpf_scrape.py mpf_funds.csv
+python mpf_scrape.py --lang en mpf_funds.csv
+python mpf_scrape.py --lang zh mpf_funds_zh.csv
+python mpf_scrape.py --lang cn mpf_funds_cn.csv
 ```
 
 ### Save to both CSV and Excel:
 
 ```bash
-python mpf_scrape.py mpf_funds.csv mpf_funds.xlsx
+python mpf_scrape.py --lang en mpf_funds.csv mpf_funds.xlsx
 ```
+
+### Command-line options:
+
+```bash
+python mpf_scrape.py --help
+```
+
+**Options:**
+- `--lang` or `-l`: Language to scrape (choices: `zh`, `cn`, `en`, default: `en`)
+  - `zh` = Traditional Chinese (繁體中文)
+  - `cn` = Simplified Chinese (简体中文)
+  - `en` = English
+- First positional argument: CSV output file path (optional)
+- Second positional argument: Excel output file path (optional)
 
 ## Output Format
 
@@ -82,20 +106,24 @@ The scraper produces a clean CSV/Excel file with 19 columns:
 ## Data Source
 
 Data is scraped from the official MPFA (Mandatory Provident Fund Schemes Authority) website:
-- URL: https://mfp.mpfa.org.hk/eng/mpp_list.jsp
-- Data as of: 31 Oct 2025 (check the output for current date)
+- **English**: https://mfp.mpfa.org.hk/eng/mpp_list.jsp
+- **Traditional Chinese**: https://mfp.mpfa.org.hk/tch/mpp_list.jsp
+- **Simplified Chinese**: https://mfp.mpfa.org.hk/sch/mpp_list.jsp
+- Data as of: 30 Nov 2025 (check the output for current date)
 
 ## Technical Details
 
 ### How it works
 
-1. **Fetch HTML**: Uses `requests` with browser-like headers to fetch the page
-2. **Parse Table**: Uses `pandas.read_html()` to parse the complex HTML table structure
-3. **Handle Multi-level Headers**: The table has 3-level headers with colspan/rowspan attributes
-4. **Remove Duplicates**: Identifies and removes duplicate columns caused by HTML colspan
-5. **Label Columns**: Applies clear, descriptive column names
-6. **Extract Date**: Uses BeautifulSoup to find the "Latest information as of" date
-7. **Export**: Saves to CSV or Excel format
+1. **Select Language**: Choose from English (en), Traditional Chinese (zh), or Simplified Chinese (cn)
+2. **Fetch HTML**: Uses `requests` with browser-like headers to fetch the page
+3. **Parse Table**: Uses `pandas.read_html()` to parse the complex HTML table structure
+4. **Handle Multi-level Headers**: The table has 3-level headers with colspan/rowspan attributes
+5. **Detect Column Headers**: Recognizes column names in all three languages
+6. **Remove Duplicates**: Identifies and removes duplicate columns caused by HTML colspan
+7. **Label Columns**: Applies clear, descriptive English column names (regardless of source language)
+8. **Extract Date**: Uses BeautifulSoup to find the "Latest information as of" date
+9. **Export**: Saves to CSV or Excel format
 
 ### Key Functions
 
@@ -106,13 +134,17 @@ Data is scraped from the official MPFA (Mandatory Provident Fund Schemes Authori
 
 ## Example Output
 
+### English version:
 ```
+=== Scraping from EN version ===
+URL: https://mfp.mpfa.org.hk/eng/mpp_list.jsp
+
 === Latest data update date ===
-31 Oct 2025
-(ISO) 2025-10-31
+30 Nov 2025
+(ISO) 2025-11-30
 
 === Table preview (first 10 rows) ===
-                          Scheme  Constituent Fund MPF Trustee  ...
+                         Scheme  Constituent Fund MPF Trustee  ...
 0  AIA MPF - Prime Value Choice  Age 65 Plus Fund        AIAT  ...
 1  AIA MPF - Prime Value Choice     American Fund        AIAT  ...
 ...
@@ -120,9 +152,28 @@ Data is scraped from the official MPFA (Mandatory Provident Fund Schemes Authori
 Saved CSV to: mpf_funds.csv
 ```
 
+### Traditional Chinese version:
+```
+=== Scraping from ZH version ===
+URL: https://mfp.mpfa.org.hk/tch/mpp_list.jsp
+
+=== Latest data update date ===
+2025年11月30日
+
+=== Table preview (first 10 rows) ===
+      Scheme Constituent Fund MPF Trustee  ...
+0  友邦強積金優選計劃           65歲後基金       友邦信託  ...
+1  友邦強積金優選計劃             美洲基金       友邦信託  ...
+...
+
+Saved CSV to: mpf_funds_zh.csv
+```
+
 ## Notes
 
 - The scraper includes retry logic with exponential backoff for robustness
+- **All output files use English column headers** regardless of the source language for consistency
+- The actual fund names, scheme names, and other data content will be in the language of the selected source
 - Columns with "n.a." values indicate data not available for that time period
 - All return percentages are as reported by MPFA
 - The script handles both English and Chinese date formats
