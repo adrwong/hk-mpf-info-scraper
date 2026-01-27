@@ -1,5 +1,6 @@
 #!/bin/bash
-# run_scraper.sh - Automatic MPF data scraper for Unix/Linux/macOS
+# run_scraper.sh - MPF data scraper for Unix/Linux/macOS
+# Note: Python dependencies must be pre-installed (pandas, requests, beautifulsoup4, lxml)
 
 set -e  # Exit on error
 

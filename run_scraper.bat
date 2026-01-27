@@ -1,5 +1,6 @@
 @echo off
-REM run_scraper.bat - Automatic MPF data scraper for Windows
+REM run_scraper.bat - MPF data scraper for Windows
+REM Note: Python dependencies must be pre-installed (pandas, requests, beautifulsoup4, lxml)
 
 echo === MPF Data Scraper ===
 echo.
