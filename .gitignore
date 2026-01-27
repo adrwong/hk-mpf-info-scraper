@@ -8,5 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Output files
 *.xlsx
 *.csv
+processed_data.json
