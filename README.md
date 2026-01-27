@@ -4,42 +4,51 @@ A Python scraper for extracting Mandatory Provident Fund (MPF) data from the MPF
 
 ## Quick Start (Recommended)
 
-### Prerequisites
+### Using Pre-built Executables (No Python Required)
 
-Install required dependencies first:
+Download the latest pre-compiled executable for your platform from the [Releases](../../releases) page:
 
-```bash
-pip install pandas requests beautifulsoup4 lxml
-```
+- **Linux/macOS**: `mpf-scraper-linux`
+- **Windows**: `mpf-scraper-windows.exe`
 
-Or using pip with user flag (no admin rights needed):
-
-```bash
-pip install --user pandas requests beautifulsoup4 lxml
-```
-
-### One-Command Data Collection
+Then run:
 
 **For Unix/Linux/macOS:**
 ```bash
-./run_scraper.sh
+chmod +x mpf-scraper-linux
+./mpf-scraper-linux
 ```
 
 **For Windows:**
-```batch
-run_scraper.bat
+```cmd
+mpf-scraper-windows.exe
 ```
 
-These scripts will:
+The executable will:
 1. Scrape data from all three language versions (English, Traditional Chinese, Simplified Chinese)
 2. Combine all data into a single `processed_data.json` file
+
+No Python installation or dependencies required!
+
+### Using Python Script
+
+If you prefer to run the Python script directly:
+
+```bash
+# Install dependencies
+pip install pandas requests beautifulsoup4 lxml
+
+# Run the scraper
+python mpf_scrape_json.py
+```
 
 The output JSON file contains all fund information from all three languages with a `_language` field indicating the source language for each record.
 
 ## Features
 
+- **Standalone executables**: Pre-compiled binaries for Linux and Windows (no Python installation required)
 - **Multi-language support**: Scrape data in English, Traditional Chinese, or Simplified Chinese
-- **Automated scripts**: Single-command execution
+- **Single-command execution**: One executable file does everything
 - Scrapes comprehensive MPF fund information from the MPFA website
 - Extracts and properly labels all fund data including:
   - Basic fund information (Scheme, Fund Name, Trustee, Type, Launch Date, Fund Size, Risk Class)
@@ -53,7 +62,23 @@ The output JSON file contains all fund information from all three languages with
 - Removes duplicate columns caused by HTML structure
 - Extracts data update date from the page
 
-## Requirements
+## Building Executables
+
+The GitHub Actions workflow automatically builds executables for both Linux and Windows on every push and pull request. 
+
+To build executables manually:
+
+```bash
+# Install PyInstaller
+pip install pyinstaller pandas requests beautifulsoup4 lxml
+
+# Build for your current platform
+pyinstaller --onefile --name mpf-scraper mpf_scrape_json.py
+
+# The executable will be in the dist/ directory
+```
+
+## Requirements (for Python script only)
 
 ```
 pandas
@@ -63,9 +88,7 @@ lxml
 openpyxl (optional, for Excel export)
 ```
 
-## Installation
-
-### Manual Installation
+## Installation (for Python script only)
 
 Install dependencies using pip:
 
@@ -81,7 +104,19 @@ uv pip install pandas requests beautifulsoup4 lxml openpyxl
 
 ## Usage
 
-### Combined JSON Output (All Languages)
+### Using Pre-built Executables
+
+Simply run the downloaded executable:
+
+```bash
+# Linux/macOS
+./mpf-scraper-linux
+
+# Windows
+mpf-scraper-windows.exe
+```
+
+### Using Python Script - Combined JSON Output (All Languages)
 
 To get data from all three languages in a single JSON file:
 
