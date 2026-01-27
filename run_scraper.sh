@@ -22,11 +22,20 @@ echo "=== Installing dependencies (user mode, no admin required) ==="
 echo ""
 
 # Install using pip with --user flag (no admin needed)
-python3 -m pip install --user --quiet pandas requests beautifulsoup4 lxml 2>&1 || {
-    echo "Warning: pip install had some issues, but continuing..."
-}
-
-echo "✓ Dependencies installed"
+echo "Installing: pandas requests beautifulsoup4 lxml"
+if python3 -m pip install --user --quiet pandas requests beautifulsoup4 lxml; then
+    echo "✓ Dependencies installed successfully"
+else
+    echo "Warning: pip install encountered issues. Checking if dependencies are available..."
+    # Check if we can at least import the critical modules
+    if python3 -c "import pandas, requests, bs4, lxml" 2>/dev/null; then
+        echo "✓ Required modules are available (may have been already installed)"
+    else
+        echo "ERROR: Failed to install or find required dependencies."
+        echo "Please install manually: pip3 install --user pandas requests beautifulsoup4 lxml"
+        exit 1
+    fi
+fi
 echo ""
 
 # Run the scraper
