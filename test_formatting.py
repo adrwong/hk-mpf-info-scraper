@@ -84,8 +84,9 @@ def test_formatting():
     print("=" * 60)
     
     # Check Fund size formatting
-    assert actual_record["Fund size (HKD' m)"] == "2,496.08", \
-        f"Fund size not formatted correctly: {actual_record['Fund size (HKD\' m)']}"
+    fund_size_value = actual_record["Fund size (HKD' m)"]
+    assert fund_size_value == "2,496.08", \
+        f"Fund size not formatted correctly: got {fund_size_value} expected 2,496.08"
     print("✓ Fund size formatted correctly as string with comma: '2,496.08'")
     
     # Check that Details field is removed (was NaN)
