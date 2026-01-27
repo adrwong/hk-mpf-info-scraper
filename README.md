@@ -2,9 +2,31 @@
 
 A Python scraper for extracting Mandatory Provident Fund (MPF) data from the MPFA website.
 
+## Quick Start (Recommended)
+
+### One-Command Data Collection
+
+**For Unix/Linux/macOS:**
+```bash
+./run_scraper.sh
+```
+
+**For Windows:**
+```batch
+run_scraper.bat
+```
+
+These scripts will:
+1. Automatically install all required dependencies (no admin rights needed)
+2. Scrape data from all three language versions (English, Traditional Chinese, Simplified Chinese)
+3. Combine all data into a single `processed_data.json` file
+
+The output JSON file contains all fund information from all three languages with a `_language` field indicating the source language for each record.
+
 ## Features
 
 - **Multi-language support**: Scrape data in English, Traditional Chinese, or Simplified Chinese
+- **Automated scripts**: Single-command execution with automatic dependency installation
 - Scrapes comprehensive MPF fund information from the MPFA website
 - Extracts and properly labels all fund data including:
   - Basic fund information (Scheme, Fund Name, Trustee, Type, Launch Date, Fund Size, Risk Class)
@@ -25,18 +47,57 @@ pandas
 requests
 beautifulsoup4
 lxml
+## Requirements
+
+```
+pandas
+requests
+beautifulsoup4
+lxml
 openpyxl (optional, for Excel export)
 ```
 
+**Note:** The automated scripts (`run_scraper.sh` and `run_scraper.bat`) will install these dependencies automatically without requiring admin rights.
+
 ## Installation
 
-Install dependencies using uv:
+### Manual Installation
+
+Install dependencies using pip:
+
+```bash
+pip install pandas requests beautifulsoup4 lxml openpyxl
+```
+
+Or using uv:
 
 ```bash
 uv pip install pandas requests beautifulsoup4 lxml openpyxl
 ```
 
 ## Usage
+
+### Combined JSON Output (All Languages)
+
+To get data from all three languages in a single JSON file:
+
+```bash
+# Uses default output file: processed_data.json
+python mpf_scrape_json.py
+
+# Or specify custom output file
+python mpf_scrape_json.py output.json
+```
+
+The output JSON contains:
+- `data_update_date`: Latest data update date from MPFA
+- `table_data`: Array of fund records from all languages
+- `columns`: List of column names
+- `available_languages`: List of available languages
+
+Each record in `table_data` has a `_language` field with value `"english"`, `"traditional_chinese"`, or `"simplified_chinese"`.
+
+### CSV/Excel Output (Single Language)
 
 ### Basic usage (prints to console):
 
@@ -81,7 +142,70 @@ python mpf_scrape.py --help
 
 ## Output Format
 
-The scraper produces a clean CSV/Excel file with 19 columns:
+### Combined JSON Format
+
+The `mpf_scrape_json.py` script produces a JSON file with the following structure:
+
+```json
+{
+  "data_update_date": "Latest information as of 30 Nov 2025",
+  "table_data": [
+    {
+      "Scheme": "AIA MPF - Prime Value Choice",
+      "Constituent Fund": "Age 65 Plus Fund",
+      "MPF Trustee": "AIAT",
+      "Fund Type": "Mixed Assets Fund - Default Investment Strategy - Age 65 Plus Fund",
+      "Launch Date": "01-04-2017",
+      "Fund size (HKD' m)": "2,496.08",
+      "Risk Class": "4",
+      "Latest FER (%)": "0.78633",
+      "Calendar Year Return (%)\n-  2024": "3.09",
+      "Calendar Year Return (%)\n-  2023": "7.10",
+      "Calendar Year Return (%)\n-  2022": "-14.78",
+      "Calendar Year Return (%)\n-  2021": "0.89",
+      "Calendar Year Return (%)\n-  2020": "8.12",
+      "_language": "english"
+    },
+    {
+      "Scheme": "友邦強積金優選計劃",
+      "Constituent Fund": "65歲後基金",
+      "MPF Trustee": "友邦信託",
+      ...
+      "_language": "traditional_chinese"
+    },
+    {
+      "Scheme": "友邦强积金优选计划",
+      "Constituent Fund": "65岁后基金",
+      ...
+      "_language": "simplified_chinese"
+    }
+  ],
+  "columns": [
+    "Scheme",
+    "Constituent Fund",
+    "MPF Trustee",
+    "Fund Type",
+    "Launch Date",
+    "Fund size (HKD' m)",
+    "Risk Class",
+    "Latest FER (%)",
+    "Calendar Year Return (%)\n-  2024",
+    "Calendar Year Return (%)\n-  2023",
+    "Calendar Year Return (%)\n-  2022",
+    "Calendar Year Return (%)\n-  2021",
+    "Calendar Year Return (%)\n-  2020"
+  ],
+  "available_languages": [
+    "english",
+    "traditional_chinese",
+    "simplified_chinese"
+  ]
+}
+```
+
+### CSV/Excel Format
+
+The single-language scraper (`mpf_scrape.py`) produces a clean CSV/Excel file with 19 columns:
 
 1. **Scheme** - MPF scheme name
 2. **Constituent Fund** - Fund name
