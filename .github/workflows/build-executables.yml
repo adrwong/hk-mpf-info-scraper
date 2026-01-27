@@ -17,10 +17,10 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact_name: mpf-scraper-linux
-            asset_name: mpf-scraper-linux
+            output_name: mpf-scraper
           - os: windows-latest
             artifact_name: mpf-scraper-windows.exe
-            asset_name: mpf-scraper-windows.exe
+            output_name: mpf-scraper
 
     steps:
     - uses: actions/checkout@v4
@@ -37,19 +37,32 @@ jobs:
 
     - name: Build executable with PyInstaller
       run: |
-        pyinstaller --onefile --name ${{ matrix.artifact_name }} mpf_scrape_json.py
+        pyinstaller --onefile --name ${{ matrix.output_name }} mpf_scrape_json.py
+
+    - name: Rename Windows executable
+      if: runner.os == 'Windows'
+      run: |
+        move dist\mpf-scraper.exe dist\mpf-scraper-windows.exe
+      shell: cmd
+
+    - name: Rename Linux executable
+      if: runner.os == 'Linux'
+      run: |
+        mv dist/mpf-scraper dist/mpf-scraper-linux
 
     - name: Test executable (Linux)
       if: runner.os == 'Linux'
       run: |
-        chmod +x dist/${{ matrix.artifact_name }}
+        chmod +x dist/mpf-scraper-linux
         echo "Executable created successfully"
-        file dist/${{ matrix.artifact_name }}
+        file dist/mpf-scraper-linux
 
     - name: Test executable (Windows)
       if: runner.os == 'Windows'
       run: |
         echo "Executable created successfully"
+        dir dist\mpf-scraper-windows.exe
+      shell: cmd
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4

@@ -8,12 +8,12 @@ A Python scraper for extracting Mandatory Provident Fund (MPF) data from the MPF
 
 Download the latest pre-compiled executable for your platform from the [Releases](../../releases) page:
 
-- **Linux/macOS**: `mpf-scraper-linux`
+- **Linux**: `mpf-scraper-linux`
 - **Windows**: `mpf-scraper-windows.exe`
 
 Then run:
 
-**For Unix/Linux/macOS:**
+**For Linux:**
 ```bash
 chmod +x mpf-scraper-linux
 ./mpf-scraper-linux
@@ -109,7 +109,7 @@ uv pip install pandas requests beautifulsoup4 lxml openpyxl
 Simply run the downloaded executable:
 
 ```bash
-# Linux/macOS
+# Linux
 ./mpf-scraper-linux
 
 # Windows
