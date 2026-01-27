@@ -47,13 +47,6 @@ pandas
 requests
 beautifulsoup4
 lxml
-## Requirements
-
-```
-pandas
-requests
-beautifulsoup4
-lxml
 openpyxl (optional, for Excel export)
 ```
 

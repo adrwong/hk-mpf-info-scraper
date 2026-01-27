@@ -10,7 +10,8 @@ import re
 import sys
 import time
 from datetime import datetime
-from typing import Optional, Dict, List
+from io import StringIO
+from typing import Optional, Dict, List, Tuple
 
 import pandas as pd
 import requests
@@ -102,8 +103,6 @@ def parse_main_table(html: str) -> pd.DataFrame:
     Supports English, Traditional Chinese, and Simplified Chinese.
     Returns a DataFrame with cleaned, properly labeled columns and no duplicates.
     """
-    from io import StringIO
-    
     # read_html returns a list of DataFrames
     tables = pd.read_html(StringIO(html), flavor="lxml")
     if not tables:
@@ -189,7 +188,7 @@ def parse_main_table(html: str) -> pd.DataFrame:
     
     return df_clean
 
-def scrape_language(language: str) -> tuple[pd.DataFrame, str]:
+def scrape_language(language: str) -> Tuple[pd.DataFrame, str]:
     """
     Scrape data for a single language.
     Returns (dataframe, update_date)
