@@ -188,6 +188,37 @@ def parse_main_table(html: str) -> pd.DataFrame:
     
     return df_clean
 
+def format_fund_size(value):
+    """Format fund size value as string with comma separator."""
+    if pd.notna(value) and isinstance(value, (int, float)):
+        return f"{value:,.2f}"
+    return value
+
+def format_as_string(value):
+    """Convert value to string if not NaN."""
+    if pd.notna(value):
+        return str(value)
+    return value
+
+def format_dataframe_for_json(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Format DataFrame columns for JSON output.
+    - Format Fund size as string with comma separators
+    - Convert numeric values to strings where appropriate
+    """
+    df = df.copy()
+    
+    # Format Fund size (HKD' m) as string with comma separator
+    if "Fund size (HKD' m)" in df.columns:
+        df["Fund size (HKD' m)"] = df["Fund size (HKD' m)"].apply(format_fund_size)
+    
+    # Format all Calendar Year Return columns as strings
+    for col in df.columns:
+        if col.startswith('Calendar Year Return'):
+            df[col] = df[col].apply(format_as_string)
+    
+    return df
+
 def scrape_language(language: str) -> Tuple[pd.DataFrame, str]:
     """
     Scrape data for a single language.
@@ -199,6 +230,9 @@ def scrape_language(language: str) -> Tuple[pd.DataFrame, str]:
     html = fetch_html(url)
     update_date_raw = extract_update_date(html)
     df = parse_main_table(html)
+    
+    # Format data for JSON output
+    df = format_dataframe_for_json(df)
     
     # Add language column
     df['_language'] = LANGUAGE_LABELS[language]
@@ -224,7 +258,15 @@ def combine_all_languages() -> Dict:
             
             # Convert DataFrame to list of dictionaries
             records = df.to_dict('records')
-            all_data.extend(records)
+            
+            # Remove NaN values from each record
+            cleaned_records = []
+            for record in records:
+                # Filter out NaN values
+                cleaned_record = {k: v for k, v in record.items() if pd.notna(v)}
+                cleaned_records.append(cleaned_record)
+            
+            all_data.extend(cleaned_records)
             
             print(f"✓ Successfully scraped {len(df)} records from {LANGUAGE_LABELS[lang]}")
         except Exception as e:
