@@ -4,6 +4,20 @@ A Python scraper for extracting Mandatory Provident Fund (MPF) data from the MPF
 
 ## Quick Start (Recommended)
 
+### Prerequisites
+
+Install required dependencies first:
+
+```bash
+pip install pandas requests beautifulsoup4 lxml
+```
+
+Or using pip with user flag (no admin rights needed):
+
+```bash
+pip install --user pandas requests beautifulsoup4 lxml
+```
+
 ### One-Command Data Collection
 
 **For Unix/Linux/macOS:**
@@ -17,16 +31,15 @@ run_scraper.bat
 ```
 
 These scripts will:
-1. Automatically install all required dependencies (no admin rights needed)
-2. Scrape data from all three language versions (English, Traditional Chinese, Simplified Chinese)
-3. Combine all data into a single `processed_data.json` file
+1. Scrape data from all three language versions (English, Traditional Chinese, Simplified Chinese)
+2. Combine all data into a single `processed_data.json` file
 
 The output JSON file contains all fund information from all three languages with a `_language` field indicating the source language for each record.
 
 ## Features
 
 - **Multi-language support**: Scrape data in English, Traditional Chinese, or Simplified Chinese
-- **Automated scripts**: Single-command execution with automatic dependency installation
+- **Automated scripts**: Single-command execution
 - Scrapes comprehensive MPF fund information from the MPFA website
 - Extracts and properly labels all fund data including:
   - Basic fund information (Scheme, Fund Name, Trustee, Type, Launch Date, Fund Size, Risk Class)
@@ -49,8 +62,6 @@ beautifulsoup4
 lxml
 openpyxl (optional, for Excel export)
 ```
-
-**Note:** The automated scripts (`run_scraper.sh` and `run_scraper.bat`) will install these dependencies automatically without requiring admin rights.
 
 ## Installation
 
