@@ -5,8 +5,12 @@ build/
 dist/
 wheels/
 *.egg-info
+*.spec
 
 # Virtual environments
 .venv
+
+# Output files
 *.xlsx
 *.csv
+processed_data.json

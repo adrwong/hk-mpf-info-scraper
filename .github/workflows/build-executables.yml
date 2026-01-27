@@ -1,0 +1,83 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: mpf-scraper-linux
+            output_name: mpf-scraper
+          - os: windows-latest
+            artifact_name: mpf-scraper-windows.exe
+            output_name: mpf-scraper
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller pandas requests beautifulsoup4 lxml
+
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller --onefile --name ${{ matrix.output_name }} mpf_scrape_json.py
+
+    - name: Rename Windows executable
+      if: runner.os == 'Windows'
+      run: |
+        move dist\mpf-scraper.exe dist\mpf-scraper-windows.exe
+      shell: cmd
+
+    - name: Rename Linux executable
+      if: runner.os == 'Linux'
+      run: |
+        mv dist/mpf-scraper dist/mpf-scraper-linux
+
+    - name: Test executable (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        chmod +x dist/mpf-scraper-linux
+        echo "Executable created successfully"
+        file dist/mpf-scraper-linux
+
+    - name: Test executable (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        echo "Executable created successfully"
+        dir dist\mpf-scraper-windows.exe
+      shell: cmd
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/${{ matrix.artifact_name }}
+        if-no-files-found: error
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/${{ matrix.artifact_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
