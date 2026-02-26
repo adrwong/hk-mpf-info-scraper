@@ -239,14 +239,25 @@ def scrape_language(language: str) -> Tuple[pd.DataFrame, str]:
     
     return df, update_date_raw
 
+_FUND_TYPE_SEP = re.compile(r"\s+[-—]\s+")
+
+
+def _split_fund_type(value: str):
+    """Split a fund type string on the first ' - ' or ' — ' separator."""
+    m = _FUND_TYPE_SEP.search(value)
+    if m:
+        return [value[:m.start()], value[m.end():]]
+    return [value]
+
+
 def build_fund_type_maps(table_data: Dict) -> Tuple[Dict, Dict]:
     """
     Build language mapping dictionaries for fund types and fund categories.
 
     Iterates over table_data entries that contain all three language keys and
-    splits the 'Fund Type' field on the first ' - ' separator to derive:
-      - fund_type_map: maps English fund type (left of ' - ') to its translations
-      - fund_category_map: maps English fund category (right of ' - ') to its translations
+    splits the 'Fund Type' field on the first ' - ' or ' — ' separator to derive:
+      - fund_type_map: maps English fund type (left of separator) to its translations
+      - fund_category_map: maps English fund category (right of separator) to its translations
 
     Returns (fund_type_map, fund_category_map).
     """
@@ -265,9 +276,9 @@ def build_fund_type_maps(table_data: Dict) -> Tuple[Dict, Dict]:
         if not en_fund_type:
             continue
 
-        en_parts = en_fund_type.split(" - ", 1)
-        zh_parts = zh_fund_type.split(" - ", 1) if zh_fund_type else []
-        cn_parts = cn_fund_type.split(" - ", 1) if cn_fund_type else []
+        en_parts = _split_fund_type(en_fund_type)
+        zh_parts = _split_fund_type(zh_fund_type) if zh_fund_type else []
+        cn_parts = _split_fund_type(cn_fund_type) if cn_fund_type else []
 
         en_type = en_parts[0].strip()
         zh_type = zh_parts[0].strip() if zh_parts else ""
