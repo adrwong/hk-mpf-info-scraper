@@ -242,54 +242,40 @@ def scrape_language(language: str) -> Tuple[pd.DataFrame, str]:
 def combine_all_languages() -> Dict:
     """
     Scrape all three languages and combine into a single data structure.
-    Returns a dictionary matching the desired output format.
+    Returns a dictionary matching the desired output format, with each fund
+    indexed by its row number and organised by language sub-key.
     """
-    all_data = []
+    table_data: Dict[str, Dict] = {}
     update_date = None
-    
+
     # Scrape all three languages
     for lang in ['en', 'zh', 'cn']:
         try:
             df, date_str = scrape_language(lang)
-            
+            lang_label = LANGUAGE_LABELS[lang]
+
             # Use the English version's update date
             if lang == 'en' and date_str:
                 update_date = f"Latest information as of {date_str}"
-            
-            # Convert DataFrame to list of dictionaries
-            records = df.to_dict('records')
-            
-            # Remove NaN values from each record
-            cleaned_records = []
-            for record in records:
-                # Filter out NaN values
-                cleaned_record = {k: v for k, v in record.items() if pd.notna(v)}
-                cleaned_records.append(cleaned_record)
-            
-            all_data.extend(cleaned_records)
-            
-            print(f"✓ Successfully scraped {len(df)} records from {LANGUAGE_LABELS[lang]}")
+
+            # Index each row by its position in the table
+            for idx, row in df.iterrows():
+                record = {k: v for k, v in row.to_dict().items() if pd.notna(v)}
+                record.pop('_language', None)
+
+                str_idx = str(idx)
+                if str_idx not in table_data:
+                    table_data[str_idx] = {}
+                table_data[str_idx][lang_label] = record
+
+            print(f"✓ Successfully scraped {len(df)} records from {lang_label}")
         except Exception as e:
             print(f"✗ Error scraping {LANGUAGE_LABELS[lang]}: {e}", file=sys.stderr)
             # Continue with other languages even if one fails
-    
-    # Get column names (excluding _language)
-    if all_data:
-        # Get all unique columns and sort them, with _language last
-        all_columns = set()
-        for record in all_data:
-            all_columns.update(record.keys())
-        
-        # Remove _language from columns list
-        all_columns.discard('_language')
-        columns = sorted(all_columns)
-    else:
-        columns = []
-    
+
     return {
         "data_update_date": update_date or "Unknown",
-        "table_data": all_data,
-        "columns": columns,
+        "table_data": table_data,
         "available_languages": ["english", "traditional_chinese", "simplified_chinese"]
     }
 
@@ -310,8 +296,7 @@ def main(output_file: str = "processed_data.json"):
         json.dump(combined_data, f, ensure_ascii=False, indent=2)
     
     print(f"\n✓ Successfully saved combined data to: {output_file}")
-    print(f"  Total records: {len(combined_data['table_data'])}")
-    print(f"  Columns: {len(combined_data['columns'])}")
+    print(f"  Total fund entries: {len(combined_data['table_data'])}")
     print(f"  Languages: {', '.join(combined_data['available_languages'])}")
     print(f"  Data update date: {combined_data['data_update_date']}\n")
 

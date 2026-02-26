@@ -5,7 +5,8 @@ Final validation test matching exactly the issue requirements
 import pandas as pd
 import numpy as np
 import json
-from mpf_scrape_json import format_dataframe_for_json
+from unittest.mock import patch
+from mpf_scrape_json import format_dataframe_for_json, combine_all_languages, LANGUAGE_LABELS
 
 def test_exact_issue_requirements():
     """
@@ -128,5 +129,79 @@ def test_exact_issue_requirements():
     print("  • Calendar Year Returns: all formatted as strings")
     print("\nThe output format now exactly matches the requirements in the issue.")
     
+def test_indexed_table_data_structure():
+    """
+    Test that combine_all_languages produces table_data keyed by row index
+    with language as sub-keys, matching the format required by the issue.
+    """
+    print("\n" + "=" * 70)
+    print("TEST - Indexed table_data structure")
+    print("=" * 70)
+
+    # Build two minimal DataFrames (one per language) to avoid real HTTP calls
+    def make_df(scheme_name, lang_label):
+        df = pd.DataFrame({
+            'Scheme': [scheme_name, scheme_name + ' B'],
+            'Constituent Fund': ['Fund A', 'Fund B'],
+            'MPF Trustee': ['Trustee X', 'Trustee X'],
+            'Fund Type': ['Equity', 'Bond'],
+            'Launch Date': ['01-01-2020', '01-01-2021'],
+            "Fund size (HKD' m)": ['100.00', '200.00'],
+            'Risk Class': ['5', '3'],
+            'Latest FER (%)': ['1.00', '0.50'],
+            '_language': [lang_label, lang_label],
+        })
+        return df, None  # (dataframe, date_str)
+
+    side_effects = [
+        make_df('Scheme EN', 'english'),
+        make_df('Scheme ZH', 'traditional_chinese'),
+        make_df('Scheme CN', 'simplified_chinese'),
+    ]
+
+    with patch('mpf_scrape_json.scrape_language', side_effect=side_effects):
+        result = combine_all_languages()
+
+    table_data = result['table_data']
+
+    # table_data must be a dict, not a list
+    assert isinstance(table_data, dict), \
+        f"table_data should be a dict, got {type(table_data)}"
+    print("✓ table_data is a dict")
+
+    # Keys must be string row indices
+    assert set(table_data.keys()) == {'0', '1'}, \
+        f"Expected keys {{'0','1'}}, got {set(table_data.keys())}"
+    print("✓ Keys are string row indices '0' and '1'")
+
+    # Each entry must have all three language sub-keys
+    for row_key in ['0', '1']:
+        entry = table_data[row_key]
+        assert set(entry.keys()) == {'english', 'traditional_chinese', 'simplified_chinese'}, \
+            f"Entry {row_key} missing language keys: {set(entry.keys())}"
+    print("✓ Each entry contains all three language sub-keys")
+
+    # _language field must NOT appear in the fund records
+    for row_key, entry in table_data.items():
+        for lang, record in entry.items():
+            assert '_language' not in record, \
+                f"_language should be removed from record at index {row_key}/{lang}"
+    print("✓ _language field removed from all fund records")
+
+    # Spot-check a value
+    assert table_data['0']['english']['Scheme'] == 'Scheme EN'
+    assert table_data['0']['traditional_chinese']['Scheme'] == 'Scheme ZH'
+    assert table_data['0']['simplified_chinese']['Scheme'] == 'Scheme CN'
+    print("✓ Fund data correctly stored under each language sub-key")
+
+    # columns key must not be present in the output
+    assert 'columns' not in result, "'columns' key should not be present in output"
+    print("✓ Obsolete 'columns' key not present in output")
+
+    print("\n✅ ALL INDEXED STRUCTURE TESTS PASSED!")
+    print("=" * 70)
+
+
 if __name__ == "__main__":
     test_exact_issue_requirements()
+    test_indexed_table_data_structure()
