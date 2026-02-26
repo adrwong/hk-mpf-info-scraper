@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import json
 from unittest.mock import patch
-from mpf_scrape_json import format_dataframe_for_json, combine_all_languages, LANGUAGE_LABELS
+from mpf_scrape_json import format_dataframe_for_json, combine_all_languages, build_fund_type_maps, LANGUAGE_LABELS
 
 def test_exact_issue_requirements():
     """
@@ -202,6 +202,123 @@ def test_indexed_table_data_structure():
     print("=" * 70)
 
 
+def test_build_fund_type_maps():
+    """
+    Test that build_fund_type_maps correctly derives fund_type_map and
+    fund_category_map from table_data using the example given in the issue.
+    """
+    print("\n" + "=" * 70)
+    print("TEST - build_fund_type_maps")
+    print("=" * 70)
+
+    table_data = {
+        "54": {
+            "english": {
+                "Scheme": "BCOM Joyful Retirement MPF Scheme",
+                "Constituent Fund": "BCOM China Dynamic Equity (CF) Fund",
+                "MPF Trustee": "BCOM",
+                "Fund Type": "Equity Fund - China Equity Fund",
+            },
+            "traditional_chinese": {
+                "Scheme": "交通銀行愉盈退休強積金計劃",
+                "Constituent Fund": "交通銀行中國動力股票成分基金",
+                "MPF Trustee": "交通",
+                "Fund Type": "股票基金 - 中國股票基金",
+            },
+            "simplified_chinese": {
+                "Scheme": "交通银行愉盈退休强积金计划",
+                "Constituent Fund": "交通银行中国动力股票成分基金",
+                "MPF Trustee": "交通",
+                "Fund Type": "股票基金 - 中国股票基金",
+            },
+        },
+        "55": {
+            "english": {
+                "Fund Type": "Mixed Assets Fund - Balanced Fund",
+            },
+            "traditional_chinese": {
+                "Fund Type": "混合資產基金 - 平衡基金",
+            },
+            "simplified_chinese": {
+                "Fund Type": "混合资产基金 - 平衡基金",
+            },
+        },
+    }
+
+    fund_type_map, fund_category_map = build_fund_type_maps(table_data)
+
+    # fund_type_map checks
+    assert "Equity Fund" in fund_type_map, "Expected 'Equity Fund' in fund_type_map"
+    assert fund_type_map["Equity Fund"]["traditional_chinese"] == "股票基金"
+    assert fund_type_map["Equity Fund"]["simplified_chinese"] == "股票基金"
+    print("✓ 'Equity Fund' mapped correctly")
+
+    assert "Mixed Assets Fund" in fund_type_map
+    assert fund_type_map["Mixed Assets Fund"]["traditional_chinese"] == "混合資產基金"
+    assert fund_type_map["Mixed Assets Fund"]["simplified_chinese"] == "混合资产基金"
+    print("✓ 'Mixed Assets Fund' mapped correctly")
+
+    # fund_category_map checks
+    assert "China Equity Fund" in fund_category_map
+    assert fund_category_map["China Equity Fund"]["traditional_chinese"] == "中國股票基金"
+    assert fund_category_map["China Equity Fund"]["simplified_chinese"] == "中国股票基金"
+    print("✓ 'China Equity Fund' category mapped correctly")
+
+    assert "Balanced Fund" in fund_category_map
+    assert fund_category_map["Balanced Fund"]["traditional_chinese"] == "平衡基金"
+    assert fund_category_map["Balanced Fund"]["simplified_chinese"] == "平衡基金"
+    print("✓ 'Balanced Fund' category mapped correctly")
+
+    print("\n✅ ALL FUND TYPE MAP TESTS PASSED!")
+    print("=" * 70)
+
+
+def test_combine_all_languages_includes_fund_maps():
+    """
+    Test that combine_all_languages includes fund_type_map and fund_category_map
+    in the returned dict.
+    """
+    print("\n" + "=" * 70)
+    print("TEST - combine_all_languages includes fund maps")
+    print("=" * 70)
+
+    def make_df(scheme_name, lang_label, fund_type):
+        df = pd.DataFrame({
+            'Scheme': [scheme_name],
+            'Constituent Fund': ['Fund A'],
+            'MPF Trustee': ['Trustee X'],
+            'Fund Type': [fund_type],
+            'Launch Date': ['01-01-2020'],
+            "Fund size (HKD' m)": ['100.00'],
+            'Risk Class': ['5'],
+            'Latest FER (%)': ['1.00'],
+            '_language': [lang_label],
+        })
+        return df, None
+
+    side_effects = [
+        make_df('Scheme EN', 'english', 'Equity Fund - China Equity Fund'),
+        make_df('Scheme ZH', 'traditional_chinese', '股票基金 - 中國股票基金'),
+        make_df('Scheme CN', 'simplified_chinese', '股票基金 - 中国股票基金'),
+    ]
+
+    with patch('mpf_scrape_json.scrape_language', side_effect=side_effects):
+        result = combine_all_languages()
+
+    assert 'fund_type_map' in result, "fund_type_map must be present in output"
+    assert 'fund_category_map' in result, "fund_category_map must be present in output"
+    print("✓ fund_type_map and fund_category_map keys present in output")
+
+    assert result['fund_type_map']['Equity Fund']['traditional_chinese'] == '股票基金'
+    assert result['fund_category_map']['China Equity Fund']['simplified_chinese'] == '中国股票基金'
+    print("✓ Maps contain correct translations")
+
+    print("\n✅ ALL COMBINE TESTS PASSED!")
+    print("=" * 70)
+
+
 if __name__ == "__main__":
     test_exact_issue_requirements()
     test_indexed_table_data_structure()
+    test_build_fund_type_maps()
+    test_combine_all_languages_includes_fund_maps()
