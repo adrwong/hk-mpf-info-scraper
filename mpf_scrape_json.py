@@ -239,6 +239,71 @@ def scrape_language(language: str) -> Tuple[pd.DataFrame, str]:
     
     return df, update_date_raw
 
+_FUND_TYPE_SEP = re.compile(r"\s+[-—]\s+")
+
+
+def _split_fund_type(value: str):
+    """Split a fund type string on the first ' - ' or ' — ' separator."""
+    m = _FUND_TYPE_SEP.search(value)
+    if m:
+        return [value[:m.start()], value[m.end():]]
+    return [value]
+
+
+def build_fund_type_maps(table_data: Dict) -> Tuple[Dict, Dict]:
+    """
+    Build language mapping dictionaries for fund types and fund categories.
+
+    Iterates over table_data entries that contain all three language keys and
+    splits the 'Fund Type' field on the first ' - ' or ' — ' separator to derive:
+      - fund_type_map: maps English fund type (left of separator) to its translations
+      - fund_category_map: maps English fund category (right of separator) to its translations
+
+    Returns (fund_type_map, fund_category_map).
+    """
+    fund_type_map: Dict[str, Dict] = {}
+    fund_category_map: Dict[str, Dict] = {}
+
+    for entry in table_data.values():
+        en_record = entry.get("english", {})
+        zh_record = entry.get("traditional_chinese", {})
+        cn_record = entry.get("simplified_chinese", {})
+
+        en_fund_type = en_record.get("Fund Type", "")
+        zh_fund_type = zh_record.get("Fund Type", "")
+        cn_fund_type = cn_record.get("Fund Type", "")
+
+        if not en_fund_type:
+            continue
+
+        en_parts = _split_fund_type(en_fund_type)
+        zh_parts = _split_fund_type(zh_fund_type) if zh_fund_type else []
+        cn_parts = _split_fund_type(cn_fund_type) if cn_fund_type else []
+
+        en_type = en_parts[0].strip()
+        zh_type = zh_parts[0].strip() if zh_parts else ""
+        cn_type = cn_parts[0].strip() if cn_parts else ""
+
+        if en_type and en_type not in fund_type_map:
+            fund_type_map[en_type] = {
+                "traditional_chinese": zh_type,
+                "simplified_chinese": cn_type,
+            }
+
+        if len(en_parts) > 1:
+            en_category = en_parts[1].strip()
+            zh_category = zh_parts[1].strip() if len(zh_parts) > 1 else ""
+            cn_category = cn_parts[1].strip() if len(cn_parts) > 1 else ""
+
+            if en_category and en_category not in fund_category_map:
+                fund_category_map[en_category] = {
+                    "traditional_chinese": zh_category,
+                    "simplified_chinese": cn_category,
+                }
+
+    return fund_type_map, fund_category_map
+
+
 def combine_all_languages() -> Dict:
     """
     Scrape all three languages and combine into a single data structure.
@@ -273,10 +338,14 @@ def combine_all_languages() -> Dict:
             print(f"✗ Error scraping {LANGUAGE_LABELS[lang]}: {e}", file=sys.stderr)
             # Continue with other languages even if one fails
 
+    fund_type_map, fund_category_map = build_fund_type_maps(table_data)
+
     return {
         "data_update_date": update_date or "Unknown",
         "table_data": table_data,
-        "available_languages": ["english", "traditional_chinese", "simplified_chinese"]
+        "available_languages": ["english", "traditional_chinese", "simplified_chinese"],
+        "fund_type_map": fund_type_map,
+        "fund_category_map": fund_category_map,
     }
 
 def main(output_file: str = "processed_data.json"):
