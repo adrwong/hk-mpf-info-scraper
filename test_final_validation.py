@@ -297,20 +297,21 @@ def test_build_fund_type_maps():
 
     ft_map, fc_map = build_fund_type_maps(table_data_emdash)
 
-    assert "Money Market Fund" in ft_map, "Expected 'Money Market Fund' in fund_type_map"
-    assert ft_map["Money Market Fund"]["traditional_chinese"] == "貨幣市場基金"
-    assert ft_map["Money Market Fund"]["simplified_chinese"] == "货币市场基金"
-    print("✓ 'Money Market Fund' mapped correctly with em-dash separator")
+    # Money Market Fund types should NOT be split (like Guaranteed Fund)
+    assert "Money Market Fund - MPF Conservative Fund" in ft_map, "Expected full 'Money Market Fund - MPF Conservative Fund' in fund_type_map"
+    assert ft_map["Money Market Fund - MPF Conservative Fund"]["traditional_chinese"] == "貨幣市場基金 — 強積金保守基金"
+    assert ft_map["Money Market Fund - MPF Conservative Fund"]["simplified_chinese"] == "货币市场基金 — 强积金保守基金"
+    print("✓ 'Money Market Fund - MPF Conservative Fund' mapped correctly (not split)")
 
-    assert "MPF Conservative Fund" in fc_map
-    assert fc_map["MPF Conservative Fund"]["traditional_chinese"] == "強積金保守基金"
-    assert fc_map["MPF Conservative Fund"]["simplified_chinese"] == "强积金保守基金"
-    print("✓ 'MPF Conservative Fund' category mapped correctly with em-dash separator")
+    assert "Money Market Fund - Other than MPF Conservative Fund" in ft_map, "Expected full 'Money Market Fund - Other than MPF Conservative Fund' in fund_type_map"
+    assert ft_map["Money Market Fund - Other than MPF Conservative Fund"]["traditional_chinese"] == "貨幣市場基金 — 不包括強積金保守基金"
+    assert ft_map["Money Market Fund - Other than MPF Conservative Fund"]["simplified_chinese"] == "货币市场基金 — 不包括强积金保守基金"
+    print("✓ 'Money Market Fund - Other than MPF Conservative Fund' mapped correctly (not split)")
 
-    assert "Other than MPF Conservative Fund" in fc_map
-    assert fc_map["Other than MPF Conservative Fund"]["traditional_chinese"] == "不包括強積金保守基金"
-    assert fc_map["Other than MPF Conservative Fund"]["simplified_chinese"] == "不包括强积金保守基金"
-    print("✓ 'Other than MPF Conservative Fund' category mapped correctly with em-dash separator")
+    # Money Market Fund categories should NOT exist in fund_category_map
+    assert "MPF Conservative Fund" not in fc_map, "MPF Conservative Fund should NOT be in fund_category_map"
+    assert "Other than MPF Conservative Fund" not in fc_map, "Other than MPF Conservative Fund should NOT be in fund_category_map"
+    print("✓ Money Market Fund categories correctly excluded from fund_category_map")
 
     print("\n✅ ALL FUND TYPE MAP TESTS PASSED!")
     print("=" * 70)
