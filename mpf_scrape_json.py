@@ -243,7 +243,17 @@ _FUND_TYPE_SEP = re.compile(r"\s+[-—]\s+")
 
 
 def _split_fund_type(value: str):
-    """Split a fund type string on the first ' - ' or ' — ' separator."""
+    """Split a fund type string on the first ' - ' or ' — ' separator.
+
+    Exception: Money Market Fund types are never split, similar to Guaranteed Fund.
+    """
+    # Money Market Fund types should not be split (treat like Guaranteed Fund)
+    # Check for both English and Chinese versions
+    if (value.startswith("Money Market Fund") or
+        value.startswith("貨幣市場基金") or
+        value.startswith("货币市场基金")):
+        return [value]
+
     m = _FUND_TYPE_SEP.search(value)
     if m:
         return [value[:m.start()], value[m.end():]]
